@@ -140,20 +140,6 @@ module activityService 'container-app.activity-service.bicep' = {
   }
 }
 
-module accessoryService 'container-app.accessory-service.bicep' = {
-  name: 'accessory-service-deployment'
-  params: {
-    name: '${resourcePrefix}-accessory-service'
-    location: location
-    containerAppEnvironmentId: containerAppEnvironment.outputs.environmentId
-    cosmosEndpoint: cosmosDb.outputs.endpoint
-    cosmosDatabaseName: accessoryServiceCosmos.databaseName
-    cosmosContainerName: accessoryServiceCosmos.containerName
-    acrName: acrName
-    acrLoginServer: containerRegistry.outputs.loginServer
-  }
-}
-
 resource cosmosAccountExisting 'Microsoft.DocumentDB/databaseAccounts@2025-04-15' existing = {
   name: cosmosAccountName
 }
@@ -178,16 +164,6 @@ resource activityServiceCosmosDataRole 'Microsoft.DocumentDB/databaseAccounts/sq
   }
 }
 
-resource accessoryServiceCosmosDataRole 'Microsoft.DocumentDB/databaseAccounts/sqlRoleAssignments@2025-04-15' = {
-  name: guid(resourceGroup().id, 'accessory-service-cosmos-data')
-  parent: cosmosAccountExisting
-  properties: {
-    roleDefinitionId: cosmosDataPlaneRoleDefinitionId
-    principalId: accessoryService.outputs.identityPrincipalId
-    scope: cosmosAccountResourceId
-  }
-}
-
 resource petServiceCosmosControlRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
   name: guid(resourceGroup().id, 'pet-service-cosmos-control')
   scope: cosmosAccountExisting
@@ -208,16 +184,6 @@ resource activityServiceCosmosControlRole 'Microsoft.Authorization/roleAssignmen
   }
 }
 
-resource accessoryServiceCosmosControlRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(resourceGroup().id, 'accessory-service-cosmos-control')
-  scope: cosmosAccountExisting
-  properties: {
-    roleDefinitionId: cosmosControlPlaneRoleDefinitionId
-    principalId: accessoryService.outputs.identityPrincipalId
-    principalType: 'ServicePrincipal'
-  }
-}
-
 module frontend 'container-app.frontend.bicep' = {
   name: 'frontend-deployment'
   params: {
@@ -227,7 +193,7 @@ module frontend 'container-app.frontend.bicep' = {
     frontendImage: frontendImage
     petServiceUrl: petService.outputs.fqdn
     activityServiceUrl: activityService.outputs.fqdn
-    accessoryServiceUrl: accessoryService.outputs.fqdn
+    accessoryServiceUrl: ''
   }
 }
 
@@ -293,10 +259,6 @@ output petServiceManagedIdentityClientId string = petService.outputs.identityCli
 output activityServiceUrl string = activityService.outputs.fqdn
 output activityServiceName string = activityService.outputs.name
 output activityServiceManagedIdentityClientId string = activityService.outputs.identityClientId
-
-output accessoryServiceUrl string = accessoryService.outputs.fqdn
-output accessoryServiceName string = accessoryService.outputs.name
-output accessoryServiceManagedIdentityClientId string = accessoryService.outputs.identityClientId
 
 output frontendUrl string = frontend.outputs.fqdn
 output githubManagedIdentityClientId string = githubManagedIdentityClientId == null
